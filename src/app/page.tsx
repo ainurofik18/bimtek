@@ -50,7 +50,7 @@ export default function Home() {
             href="/post-test"
             icon={ClipboardCheck}
             judul="Post Test & Saran"
-            deskripsi="Kerjakan 10 soal evaluasi dan sampaikan masukan untuk bimtek berikutnya."
+            deskripsi="Kerjakan 8 soal evaluasi dan sampaikan masukan untuk bimtek berikutnya."
             aksi="Mulai Post Test"
           />
           <Suspense fallback={<MateriCardView url={null} />}>
