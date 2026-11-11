@@ -8,7 +8,8 @@ import { PageHero, SiteFooter } from "@/components/site-chrome";
 import { sudahLogin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { tanggalWib } from "@/lib/validasi";
-import { login, logout } from "./actions";
+import { logout } from "./actions";
+import { DashboardTabs, LoginCard } from "./shared";
 
 export const metadata: Metadata = {
   title: "Dashboard Presensi",
@@ -40,20 +41,7 @@ async function Dashboard({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
 
   if (!(await sudahLogin())) {
-    return (
-      <Card className="mx-auto max-w-md">
-        <form action={login} className="space-y-4">
-          <label htmlFor="key" className="block text-sm font-semibold text-slate-700">
-            API Key
-          </label>
-          <input id="key" name="key" type="password" required autoFocus className={inputClass} />
-          {sp.salah && <p className="text-sm text-red-600">API key salah.</p>}
-          <button className="w-full rounded-xl bg-brand-700 px-5 py-3 font-bold text-white transition hover:bg-brand-800">
-            Masuk
-          </button>
-        </form>
-      </Card>
-    );
+    return <LoginCard next="/dashboard" salah={!!sp.salah} />;
   }
 
   const semua = sp.tanggal === "semua";
@@ -82,6 +70,7 @@ async function Dashboard({ searchParams }: { searchParams: SearchParams }) {
 
   return (
     <Card className="space-y-5">
+      <DashboardTabs aktif="/dashboard" />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <form className="flex flex-wrap items-end gap-3">
           <div>
@@ -110,6 +99,7 @@ async function Dashboard({ searchParams }: { searchParams: SearchParams }) {
           </a>
         </form>
         <form action={logout}>
+          <input type="hidden" name="next" value="/dashboard" />
           <button className="inline-flex items-center gap-2 py-3 text-sm font-semibold text-slate-500 hover:text-ink">
             <LogOut className="size-4" /> Keluar
           </button>

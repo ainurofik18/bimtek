@@ -11,13 +11,21 @@ const opsi = {
   path: "/dashboard",
 } as const;
 
+// Whitelist tujuan redirect agar `next` dari form tidak bisa dipakai sebagai open redirect.
+const HALAMAN = new Set(["/dashboard", "/dashboard/post-test"]);
+const tujuan = (v: FormDataEntryValue | null) => {
+  const s = String(v ?? "");
+  return HALAMAN.has(s) ? s : "/dashboard";
+};
+
 export async function login(formData: FormData) {
-  if (!keyValid(String(formData.get("key") ?? "").trim())) redirect("/dashboard?salah=1");
+  const next = tujuan(formData.get("next"));
+  if (!keyValid(String(formData.get("key") ?? "").trim())) redirect(`${next}?salah=1`);
   (await cookies()).set(COOKIE_DASHBOARD, tokenSesi(), { ...opsi, maxAge: 8 * 60 * 60 });
-  redirect("/dashboard");
+  redirect(next);
 }
 
-export async function logout() {
+export async function logout(formData: FormData) {
   (await cookies()).set(COOKIE_DASHBOARD, "", { ...opsi, maxAge: 0 });
-  redirect("/dashboard");
+  redirect(tujuan(formData.get("next")));
 }
