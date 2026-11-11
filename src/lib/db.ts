@@ -6,7 +6,7 @@ declare global {
 }
 
 function createPool() {
-  return mysql.createPool({
+  const pool = mysql.createPool({
     host: process.env.DB_HOST ?? "127.0.0.1",
     port: Number(process.env.DB_PORT ?? 3306),
     user: process.env.DB_USER ?? "root",
@@ -17,6 +17,10 @@ function createPool() {
     dateStrings: true,
     charset: "utf8mb4_unicode_ci",
   });
+  // Paksa zona waktu sesi MySQL ke WIB (UTC+7) agar kolom TIMESTAMP (created_at) dan
+  // CURRENT_TIMESTAMP selalu dalam WIB, apa pun zona waktu server MySQL.
+  pool.pool.on("connection", (conn) => conn.query("SET time_zone = '+07:00'"));
+  return pool;
 }
 
 // Simpan pool di globalThis supaya tidak membuat koneksi baru setiap hot reload saat dev.
