@@ -1,37 +1,28 @@
-import { timingSafeEqual } from "node:crypto";
 import type { NextRequest } from "next/server";
+import { keyValid } from "@/lib/auth";
 import { FITUR, getStatusFitur, setFitur, type Fitur } from "@/lib/fitur";
 
-// Autentikasi: header `Authorization: Bearer <API_KEY>` atau `X-API-Key: <API_KEY>`.
-function izinkan(req: NextRequest) {
-  const key = process.env.API_KEY?.trim();
-  if (!key) return false;
-  const kirim = req.headers.get("x-api-key") ?? req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  const a = Buffer.from(kirim);
-  const b = Buffer.from(key);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-
-const tolak = () => Response.json({ message: "Unauthorized" }, { status: 401 });
-
-/** GET /api/fitur → { presensi: true, post_test: false } */
+/**
+ * GET /api/fitur?api_key=KEY                                → lihat status
+ * GET /api/fitur?api_key=KEY&fitur=presensi&buka=1          → buka presensi
+ * GET /api/fitur?api_key=KEY&fitur=post_test&buka=0         → tutup post test
+ *
+ * fitur: presensi | post_test      buka: 1 | 0
+ */
 export async function GET(req: NextRequest) {
-  if (!izinkan(req)) return tolak();
-  return Response.json(await getStatusFitur());
-}
-
-/** POST /api/fitur  body: { "fitur": "presensi" | "post_test", "buka": true | false } */
-export async function POST(req: NextRequest) {
-  if (!izinkan(req)) return tolak();
-
-  const body = await req.json().catch(() => null);
-  if (!FITUR.includes(body?.fitur) || typeof body?.buka !== "boolean") {
-    return Response.json(
-      { message: 'Body harus { "fitur": "presensi" | "post_test", "buka": true | false }' },
-      { status: 400 },
-    );
+  const p = req.nextUrl.searchParams;
+  if (!keyValid(p.get("api_key") ?? "")) {
+    return Response.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  await setFitur(body.fitur as Fitur, body.buka);
+  const fitur = p.get("fitur");
+  if (fitur !== null) {
+    const buka = p.get("buka");
+    if (!FITUR.includes(fitur as Fitur) || (buka !== "1" && buka !== "0")) {
+      return Response.json({ message: "Parameter: fitur=presensi|post_test dan buka=1|0" }, { status: 400 });
+    }
+    await setFitur(fitur as Fitur, buka === "1");
+  }
+
   return Response.json(await getStatusFitur());
 }

@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import type { RowDataPacket } from "mysql2";
 import { db, isDuplicateError } from "@/lib/db";
 import { getStatusFitur } from "@/lib/fitur";
+import { storageDir } from "@/lib/storage";
 import {
   bersihkanNama,
   bersihkanNip,
@@ -25,12 +26,6 @@ export type PresensiState =
 type FieldName = "nama" | "nip" | "kode_skpd" | "no_hp" | "foto";
 
 const MAX_FOTO_BYTES = 3 * 1024 * 1024;
-
-function storageDir() {
-  return path.resolve(
-    /*turbopackIgnore: true*/ process.env.STORAGE_DIR || path.join(process.cwd(), "storage"),
-  );
-}
 
 export async function simpanPresensi(
   _prev: PresensiState,
