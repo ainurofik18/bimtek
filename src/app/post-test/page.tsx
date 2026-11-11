@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { ClipboardList } from "lucide-react";
 import { Card, FormSkeleton } from "@/components/form";
+import { FiturTutup } from "@/components/fitur-tutup";
+import { getStatusFitur } from "@/lib/fitur";
 import { PageHero, SiteFooter } from "@/components/site-chrome";
 import { getSkpds, getSoalPublik } from "@/lib/data";
 import { PostTestForm } from "./post-test-form";
@@ -11,6 +14,10 @@ export const metadata: Metadata = {
 };
 
 async function PostTestLoader() {
+  await connection();
+  if (!(await getStatusFitur()).post_test) {
+    return <FiturTutup judul="Post test ditutup" teks="Post test belum dibuka atau sudah ditutup oleh panitia." />;
+  }
   const [skpds, soal] = await Promise.all([getSkpds(), getSoalPublik()]);
 
   if (soal.length === 0) {

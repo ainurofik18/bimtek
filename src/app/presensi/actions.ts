@@ -6,6 +6,7 @@ import { randomBytes } from "node:crypto";
 import { headers } from "next/headers";
 import type { RowDataPacket } from "mysql2";
 import { db, isDuplicateError } from "@/lib/db";
+import { getStatusFitur } from "@/lib/fitur";
 import {
   bersihkanNama,
   bersihkanNip,
@@ -35,6 +36,10 @@ export async function simpanPresensi(
   _prev: PresensiState,
   formData: FormData,
 ): Promise<PresensiState> {
+  if (!(await getStatusFitur()).presensi) {
+    return { status: "error", message: "Presensi sudah ditutup." };
+  }
+
   const nama = bersihkanNama(formData.get("nama"));
   const nip = bersihkanNip(formData.get("nip"));
   const kodeSkpd = String(formData.get("kode_skpd") ?? "").trim();

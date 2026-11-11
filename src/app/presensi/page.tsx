@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { FormSkeleton } from "@/components/form";
+import { FiturTutup } from "@/components/fitur-tutup";
+import { getStatusFitur } from "@/lib/fitur";
 import { PageHero, SiteFooter } from "@/components/site-chrome";
 import { getSkpds } from "@/lib/data";
 import { PresensiForm } from "./presensi-form";
@@ -10,6 +13,10 @@ export const metadata: Metadata = {
 };
 
 async function PresensiLoader() {
+  await connection();
+  if (!(await getStatusFitur()).presensi) {
+    return <FiturTutup judul="Presensi ditutup" teks="Presensi belum dibuka atau sudah ditutup oleh panitia." />;
+  }
   const skpds = await getSkpds();
   return <PresensiForm skpds={skpds} />;
 }

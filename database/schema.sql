@@ -95,3 +95,14 @@ CREATE TABLE IF NOT EXISTS `post_test_jawabans` (
 -- VALUES
 --   (1, 'Teks pertanyaan nomor 1?', 'Pilihan A', 'Pilihan B', 'Pilihan C', 'Pilihan D', NULL, 'B');
 -- ------------------------------------------------------------------
+
+-- ------------------------------------------------------------------
+-- Status buka/tutup fitur (diatur lewat API /api/fitur)
+-- Baris yang belum ada dianggap TERBUKA.
+-- ------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `pengaturan_fitur` (
+  `fitur`       VARCHAR(30) NOT NULL COMMENT 'presensi | post_test',
+  `buka`        TINYINT(1)  NOT NULL DEFAULT 1,
+  `updated_at`  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`fitur`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

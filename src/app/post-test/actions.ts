@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { db, isDuplicateError } from "@/lib/db";
+import { getStatusFitur } from "@/lib/fitur";
 import { bersihkanNama, bersihkanNip, validasiNama, validasiNip } from "@/lib/validasi";
 
 export type PostTestState =
@@ -22,6 +23,10 @@ export async function simpanPostTest(
   _prev: PostTestState,
   formData: FormData,
 ): Promise<PostTestState> {
+  if (!(await getStatusFitur()).post_test) {
+    return { status: "error", message: "Post test sudah ditutup." };
+  }
+
   const nama = bersihkanNama(formData.get("nama"));
   const nip = bersihkanNip(formData.get("nip"));
   const kodeSkpd = String(formData.get("kode_skpd") ?? "").trim();
