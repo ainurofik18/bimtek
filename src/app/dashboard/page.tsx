@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { Camera, FileDown, LogOut, Search } from "lucide-react";
+import { Award, Camera, FileDown, LogOut, Search } from "lucide-react";
 import { Card, FormSkeleton, inputClass } from "@/components/form";
 import { PageHero, SiteFooter } from "@/components/site-chrome";
 import { sudahLogin } from "@/lib/auth";
@@ -91,14 +91,24 @@ async function Dashboard({ searchParams }: { searchParams: SearchParams }) {
           {semua ? " (semua tanggal)" : ` pada ${tanggal}`}
         </p>
         {rows.length > 0 && (
-          <a
-            href={pdfHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl border border-brand-700 px-4 py-2.5 text-sm font-bold text-brand-700 transition hover:bg-brand-50"
-          >
-            <FileDown className="size-4" /> Cetak PDF
-          </a>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={pdfHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl border border-brand-700 px-4 py-2.5 text-sm font-bold text-brand-700 transition hover:bg-brand-50"
+            >
+              <FileDown className="size-4" /> Cetak PDF
+            </a>
+            <a
+              href="/dashboard/sertifikat"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-800"
+            >
+              <Award className="size-4" /> Sertifikat semua peserta
+            </a>
+          </div>
         )}
       </div>
 
@@ -112,7 +122,8 @@ async function Dashboard({ searchParams }: { searchParams: SearchParams }) {
               <th className="py-2 pr-4">SKPD</th>
               <th className="py-2 pr-4">No. HP</th>
               <th className="py-2 pr-4">Waktu</th>
-              <th className="py-2">Foto</th>
+              <th className="py-2 pr-4">Foto</th>
+              <th className="py-2">Sertifikat</th>
             </tr>
           </thead>
           <tbody>
@@ -127,7 +138,7 @@ async function Dashboard({ searchParams }: { searchParams: SearchParams }) {
                   {semua && `${r.tanggal} `}
                   {String(r.created_at).slice(11, 16)}
                 </td>
-                <td className="py-2.5">
+                <td className="py-2.5 pr-4">
                   <a
                     href={`/dashboard/foto/${r.id}`}
                     target="_blank"
@@ -137,11 +148,21 @@ async function Dashboard({ searchParams }: { searchParams: SearchParams }) {
                     <Camera className="size-4" /> Lihat
                   </a>
                 </td>
+                <td className="py-2.5">
+                  <a
+                    href={`/dashboard/sertifikat?nip=${r.nip}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-semibold text-brand-700 hover:underline"
+                  >
+                    <Award className="size-4" /> Cetak
+                  </a>
+                </td>
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-slate-500">
+                <td colSpan={8} className="py-10 text-center text-slate-500">
                   Belum ada data presensi.
                 </td>
               </tr>

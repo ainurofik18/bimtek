@@ -37,3 +37,18 @@ export async function ambilPresensi({ semua, tanggal, q }: FilterPresensi) {
   );
   return rows;
 }
+
+/**
+ * Daftar peserta unik (satu baris per NIP) yang pernah presensi, urut waktu presensi pertama.
+ * Nama diambil dari presensi pertama. Urutan ini dipakai sebagai nomor urut sertifikat,
+ * jadi nomor tidak bergeser ketika ada peserta baru (mereka selalu masuk di urutan akhir).
+ */
+export async function ambilPesertaUnik() {
+  const [rows] = await db.query<RowDataPacket[]>(
+    `SELECT p.nip, p.nama
+       FROM presensis p
+       JOIN (SELECT nip, MIN(id) AS id FROM presensis GROUP BY nip) f ON f.id = p.id
+      ORDER BY p.created_at ASC, p.id ASC`,
+  );
+  return rows.map((r, i) => ({ no: i + 1, nip: String(r.nip), nama: String(r.nama) }));
+}

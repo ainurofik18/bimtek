@@ -4,6 +4,7 @@ import { PDFDocument, PDFFont, PDFImage, PDFPage, StandardFonts, rgb } from "pdf
 import sharp from "sharp";
 import { ACARA } from "@/lib/acara";
 import { sudahLogin } from "@/lib/auth";
+import { aman, wrap } from "@/lib/pdf";
 import { ambilPresensi, parseFilterPresensi } from "@/lib/presensi";
 import { storageDir } from "@/lib/storage";
 
@@ -123,8 +124,8 @@ export async function GET(req: Request) {
   halamanBaru(true);
 
   rows.forEach((r, i) => {
-    const nama = wrap(aman(String(r.nama), font), font, COLS[2].w - PAD * 2);
-    const skpd = wrap(aman(String(r.skpd ?? ""), font), font, COLS[3].w - PAD * 2);
+    const nama = wrap(aman(String(r.nama), font), font, FONT_SIZE, COLS[2].w - PAD * 2);
+    const skpd = wrap(aman(String(r.skpd ?? ""), font), font, FONT_SIZE, COLS[3].w - PAD * 2);
     const rowH = Math.max(ROW_H_MIN, Math.max(nama.length, skpd.length) * LINE_H + PAD * 2);
 
     if (y - rowH < MARGIN + 20) halamanBaru(false);
@@ -182,44 +183,4 @@ export async function GET(req: Request) {
       "Cache-Control": "private, no-store",
     },
   });
-}
-
-/** Font standar PDF hanya mendukung WinAnsi; karakter di luar itu diganti "?" agar tidak error. */
-function aman(teks: string, f: PDFFont) {
-  let out = "";
-  for (const ch of teks.replace(/\s+/g, " ")) {
-    try {
-      f.encodeText(ch);
-      out += ch;
-    } catch {
-      out += "?";
-    }
-  }
-  return out;
-}
-
-/** Pecah teks per kata sesuai lebar kolom; kata yang terlalu panjang dipotong per karakter. */
-function wrap(teks: string, f: PDFFont, lebar: number) {
-  const lines: string[] = [];
-  let cur = "";
-  const muat = (s: string) => f.widthOfTextAtSize(s, FONT_SIZE) <= lebar;
-  for (const kata of teks.split(" ")) {
-    const coba = cur ? `${cur} ${kata}` : kata;
-    if (muat(coba)) {
-      cur = coba;
-      continue;
-    }
-    if (cur) lines.push(cur);
-    cur = "";
-    let sisa = kata;
-    while (!muat(sisa)) {
-      let n = sisa.length - 1;
-      while (n > 1 && !muat(sisa.slice(0, n))) n--;
-      lines.push(sisa.slice(0, n));
-      sisa = sisa.slice(n);
-    }
-    cur = sisa;
-  }
-  if (cur) lines.push(cur);
-  return lines.length ? lines : [""];
 }
