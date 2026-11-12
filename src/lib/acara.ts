@@ -16,15 +16,15 @@ export const SERTIFIKAT = {
   judul: "Bimbingan Teknis Pengelolaan Keuangan Daerah",
   /** Tanggal pelaksanaan yang tercetak di sertifikat */
   tanggalPelaksanaan: "11 November 2026",
-  /** Format nomor: {no} diganti nomor urut 3 digit, contoh 001/BIMTEK/BPKD/2026 */
-  formatNomor: "{no}/BIMTEK/BPKD/2026",
+  // Nomor sertifikat (sama untuk semua peserta) diisi lewat .env: SERTIFIKAT_NOMOR
   /** Kota tempat penandatanganan */
   kotaTtd: "Kajen",
-  /** Penandatangan. Kosongkan nama/NIP bila ingin diisi tulis tangan atau ditambah stempel. */
+  /** Penandatangan sertifikat */
   pejabat: {
     jabatan: "Kepala Badan Pengelolaan Keuangan Daerah",
-    nama: "",
-    nip: "",
+    nama: "EDY HERIJANTO, S.Sos, M.A.P",
+    pangkat: "Pembina Utama Muda",
+    nip: "197012311991011004",
   },
   /** Daftar materi (halaman 2). Total JP dihitung otomatis. */
   materi: [

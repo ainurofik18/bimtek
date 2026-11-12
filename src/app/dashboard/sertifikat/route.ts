@@ -14,6 +14,8 @@ const HIJAU = rgb(0.04, 0.29, 0.24);
 const EMAS = rgb(0.77, 0.58, 0.13);
 const HITAM = rgb(0.12, 0.12, 0.12);
 const ABU = rgb(0.4, 0.4, 0.4);
+const HIJAU_TUA = rgb(0.02, 0.2, 0.16);
+const KREM = rgb(0.995, 0.985, 0.95);
 
 const PENYELENGGARA = `${ACARA.penyelenggara} ${ACARA.daerah}`;
 const TOTAL_JP = SERTIFIKAT.materi.reduce((a, m) => a + m.jp, 0);
@@ -39,8 +41,10 @@ export async function GET(req: Request) {
     .then((b) => pdf.embedPng(b))
     .catch(() => null);
 
+  // Satu nomor sertifikat yang sama untuk semua peserta (dari .env). Kosong = tidak dicetak.
+  const nomor = process.env.SERTIFIKAT_NOMOR?.trim() ?? "";
+
   for (const p of peserta) {
-    const nomor = SERTIFIKAT.formatNomor.replace("{no}", String(p.no).padStart(3, "0"));
     halamanDepan(pdf.addPage([W, H]), f, logo, p.nama, p.nip, nomor);
     halamanMateri(pdf.addPage([W, H]), f, logo, nomor);
   }
@@ -64,7 +68,53 @@ function tengah(page: PDFPage, teks: string, y: number, font: PDFFont, size: num
   page.drawText(t, { x: cx - font.widthOfTextAtSize(t, size) / 2, y, size, font, color });
 }
 
-function bingkai(page: PDFPage) {
+/**
+ * Latar sertifikat: warna krem, ornamen sudut hijau-emas, gelombang di bagian bawah,
+ * watermark lambang daerah, lalu bingkai ganda. Semua digambar vektor (ringan).
+ */
+function bingkai(page: PDFPage, logo: Logo) {
+  page.drawRectangle({ x: 0, y: 0, width: W, height: H, color: KREM });
+
+  // Lingkaran-lingkaran tipis di tengah sebagai tekstur halus di belakang teks
+  for (let r = 60; r <= 300; r += 24) {
+    page.drawCircle({ x: W / 2, y: H / 2 - 20, size: r, borderColor: HIJAU, borderWidth: 0.4, borderOpacity: 0.07 });
+  }
+
+  // Watermark lambang
+  if (logo) {
+    const h = 340;
+    const w = (logo.width / logo.height) * h;
+    page.drawImage(logo, { x: W / 2 - w / 2, y: H / 2 - h / 2 - 20, width: w, height: h, opacity: 0.08 });
+  }
+
+  const svg = (d: string, o: Parameters<PDFPage["drawSvgPath"]>[1]) => page.drawSvgPath(d, { x: 0, y: H, ...o });
+
+  // Ornamen sudut kiri-atas (emas di belakang, hijau di depan) dan cerminannya di kanan-atas
+  const sudut = (cermin: boolean, skala: number, o: number) => {
+    const tr = (pts: string) =>
+      pts.replace(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g, (_m, x, y) => `${cermin ? W - x * skala : x * skala} ${y * skala}`);
+    svg(tr("M0 0 L300 0 C 220 50 160 110 120 190 C 85 250 40 280 0 290 Z"), { color: EMAS, opacity: o });
+    svg(tr("M0 0 L250 0 C 185 42 135 95 100 160 C 70 210 35 235 0 245 Z"), { color: HIJAU, opacity: o + 0.1 });
+    svg(tr("M0 0 L170 0 C 120 30 85 65 60 110 C 40 145 20 160 0 165 Z"), { color: HIJAU_TUA, opacity: o + 0.15 });
+  };
+  sudut(false, 1, 0.85);
+  sudut(true, 0.7, 0.5);
+
+  // Gelombang di bagian bawah
+  svg(`M0 ${H} L0 ${H - 54} C 170 ${H - 84} 330 ${H - 22} 520 ${H - 52} S 770 ${H - 80} ${W} ${H - 46} L${W} ${H} Z`, {
+    color: EMAS,
+    opacity: 0.45,
+  });
+  svg(`M0 ${H} L0 ${H - 40} C 180 ${H - 66} 340 ${H - 10} 520 ${H - 38} S 770 ${H - 62} ${W} ${H - 30} L${W} ${H} Z`, {
+    color: HIJAU,
+    opacity: 0.9,
+  });
+  svg(`M0 ${H - 52} C 170 ${H - 80} 330 ${H - 20} 520 ${H - 50} S 770 ${H - 76} ${W} ${H - 42}`, {
+    borderColor: EMAS,
+    borderWidth: 1.5,
+  });
+
+  // Bingkai ganda
   page.drawRectangle({ x: 18, y: 18, width: W - 36, height: H - 36, borderColor: HIJAU, borderWidth: 3 });
   page.drawRectangle({ x: 26, y: 26, width: W - 52, height: H - 52, borderColor: EMAS, borderWidth: 1 });
 }
@@ -81,11 +131,11 @@ function kepala(page: PDFPage, f: Fonts, logo: Logo, yAtas: number) {
 }
 
 function halamanDepan(page: PDFPage, f: Fonts, logo: Logo, nama: string, nip: string, nomor: string) {
-  bingkai(page);
+  bingkai(page, logo);
   kepala(page, f, logo, H - 44);
 
   tengah(page, "SERTIFIKAT", H - 182, f.bold, 40, HIJAU);
-  tengah(page, `Nomor: ${nomor}`, H - 203, f.reg, 12, ABU);
+  if (nomor) tengah(page, `Nomor: ${nomor}`, H - 203, f.reg, 12, ABU);
 
   tengah(page, "Diberikan kepada:", H - 236, f.ital, 13);
 
@@ -107,26 +157,25 @@ function halamanDepan(page: PDFPage, f: Fonts, logo: Logo, nama: string, nip: st
     `pada tanggal ${SERTIFIKAT.tanggalPelaksanaan} dengan durasi ${jpTeks}.`,
   ].forEach((ln, i) => tengah(page, ln, H - 375 - i * 18, f.reg, 13));
 
-  // Blok tanda tangan (kanan bawah)
-  const cx = W - 200;
-  const { jabatan, nama: namaPejabat, nip: nipPejabat } = SERTIFIKAT.pejabat;
-  tengah(page, `${SERTIFIKAT.kotaTtd}, ${SERTIFIKAT.tanggalPelaksanaan}`, 138, f.reg, 12, HITAM, cx);
-  wrap(aman(jabatan, f.reg), f.reg, 12, 230).forEach((ln, i) => tengah(page, ln, 123 - i * 14, f.reg, 12, HITAM, cx));
-  if (namaPejabat) {
-    tengah(page, namaPejabat, 58, f.bold, 12, HITAM, cx);
-    const lebar = f.bold.widthOfTextAtSize(aman(namaPejabat, f.bold), 12);
-    page.drawLine({ start: { x: cx - lebar / 2, y: 55 }, end: { x: cx + lebar / 2, y: 55 }, thickness: 0.6, color: HITAM });
-    if (nipPejabat) tengah(page, `NIP. ${nipPejabat}`, 43, f.reg, 11, HITAM, cx);
-  }
+  // Blok tanda tangan (kanan bawah); ruang kosong di antara jabatan dan nama untuk tanda tangan
+  const cx = W - 205;
+  const { jabatan, nama: namaPejabat, pangkat, nip: nipPejabat } = SERTIFIKAT.pejabat;
+  tengah(page, `${SERTIFIKAT.kotaTtd}, ${SERTIFIKAT.tanggalPelaksanaan}`, 178, f.reg, 12, HITAM, cx);
+  wrap(aman(jabatan, f.reg), f.reg, 12, 260).forEach((ln, i) => tengah(page, ln, 163 - i * 14, f.reg, 12, HITAM, cx));
+  tengah(page, namaPejabat, 108, f.bold, 12.5, HITAM, cx);
+  const lebar = f.bold.widthOfTextAtSize(aman(namaPejabat, f.bold), 12.5);
+  page.drawLine({ start: { x: cx - lebar / 2, y: 105 }, end: { x: cx + lebar / 2, y: 105 }, thickness: 0.6, color: HITAM });
+  tengah(page, pangkat, 92, f.reg, 11.5, HITAM, cx);
+  tengah(page, `NIP. ${nipPejabat}`, 79, f.reg, 11.5, HITAM, cx);
 }
 
 function halamanMateri(page: PDFPage, f: Fonts, logo: Logo, nomor: string) {
-  bingkai(page);
+  bingkai(page, logo);
   kepala(page, f, logo, H - 44);
 
   tengah(page, "DAFTAR MATERI", H - 184, f.bold, 22, HIJAU);
   tengah(page, SERTIFIKAT.judul, H - 205, f.ital, 13);
-  tengah(page, `${SERTIFIKAT.tanggalPelaksanaan}  |  Nomor sertifikat: ${nomor}`, H - 222, f.reg, 11, ABU);
+  tengah(page, nomor ? `${SERTIFIKAT.tanggalPelaksanaan}  |  Nomor sertifikat: ${nomor}` : SERTIFIKAT.tanggalPelaksanaan, H - 222, f.reg, 11, ABU);
 
   // Tabel materi
   const kolom = { no: 40, materi: 440, jp: 120 };
