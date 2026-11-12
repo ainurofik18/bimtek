@@ -37,9 +37,8 @@ export async function GET(req: Request) {
   if (!(await sudahLogin())) return new Response("Unauthorized", { status: 401 });
 
   const filter = parseFilterPresensi(Object.fromEntries(new URL(req.url).searchParams));
-  const rows = (await ambilPresensi(filter)).sort((a, b) =>
-    String(a.nama).localeCompare(String(b.nama), "id"),
-  );
+  // Urut sesuai waktu presensi (ascending), sama seperti di dashboard.
+  const rows = await ambilPresensi(filter);
 
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);

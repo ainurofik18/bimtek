@@ -32,7 +32,7 @@ export async function ambilPresensi({ semua, tanggal, q }: FilterPresensi) {
        FROM presensis p
        LEFT JOIN master_skpds s ON s.kode_skpd = p.kode_skpd
       ${where.length ? "WHERE " + where.join(" AND ") : ""}
-      ORDER BY p.created_at DESC`,
+      ORDER BY p.created_at ASC, p.id ASC`,
     params,
   );
   return rows;
