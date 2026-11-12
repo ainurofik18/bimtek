@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { connection } from "next/server";
-import type { RowDataPacket } from "mysql2";
-import { Camera, LogOut, Search } from "lucide-react";
+import { Camera, FileDown, LogOut, Search } from "lucide-react";
 import { Card, FormSkeleton, inputClass } from "@/components/form";
 import { PageHero, SiteFooter } from "@/components/site-chrome";
 import { sudahLogin } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { tanggalWib } from "@/lib/validasi";
+import { ambilPresensi, parseFilterPresensi } from "@/lib/presensi";
 import { logout } from "./actions";
 import { DashboardTabs, LoginCard } from "./shared";
 
@@ -44,29 +42,10 @@ async function Dashboard({ searchParams }: { searchParams: SearchParams }) {
     return <LoginCard next="/dashboard" salah={!!sp.salah} />;
   }
 
-  const semua = sp.tanggal === "semua";
-  const tanggal = /^\d{4}-\d{2}-\d{2}$/.test(sp.tanggal ?? "") ? sp.tanggal! : tanggalWib();
-  const q = (sp.q ?? "").trim().slice(0, 100);
-
-  const where: string[] = [];
-  const params: string[] = [];
-  if (!semua) {
-    where.push("p.tanggal = ?");
-    params.push(tanggal);
-  }
-  if (q) {
-    where.push("(p.nama LIKE ? OR p.nip LIKE ?)");
-    params.push(`%${q}%`, `%${q}%`);
-  }
-
-  const [rows] = await db.query<RowDataPacket[]>(
-    `SELECT p.id, p.nama, p.nip, p.no_hp, p.tanggal, p.created_at, COALESCE(s.nama_skpd, p.kode_skpd) AS skpd
-       FROM presensis p
-       LEFT JOIN master_skpds s ON s.kode_skpd = p.kode_skpd
-      ${where.length ? "WHERE " + where.join(" AND ") : ""}
-      ORDER BY p.created_at DESC`,
-    params,
-  );
+  const filter = parseFilterPresensi(sp);
+  const { semua, tanggal, q } = filter;
+  const rows = await ambilPresensi(filter);
+  const pdfHref = `/dashboard/laporan?${new URLSearchParams({ tanggal: semua ? "semua" : tanggal, q })}`;
 
   return (
     <Card className="space-y-5">
@@ -106,10 +85,22 @@ async function Dashboard({ searchParams }: { searchParams: SearchParams }) {
         </form>
       </div>
 
-      <p className="text-slate-600">
-        <strong className="text-2xl text-ink tabular-nums">{rows.length}</strong> peserta hadir
-        {semua ? " (semua tanggal)" : ` pada ${tanggal}`}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-slate-600">
+          <strong className="text-2xl text-ink tabular-nums">{rows.length}</strong> peserta hadir
+          {semua ? " (semua tanggal)" : ` pada ${tanggal}`}
+        </p>
+        {rows.length > 0 && (
+          <a
+            href={pdfHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl border border-brand-700 px-4 py-2.5 text-sm font-bold text-brand-700 transition hover:bg-brand-50"
+          >
+            <FileDown className="size-4" /> Cetak PDF
+          </a>
+        )}
+      </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
